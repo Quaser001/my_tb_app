@@ -10,7 +10,8 @@ from torchvision import transforms, models
 import torch.nn as nn
 import numpy as np
 from PIL import Image
-
+from pydub import AudioSegment
+import io
 # ==============================
 # Device
 # ==============================
