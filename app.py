@@ -91,7 +91,7 @@ def predict_xray(img_file):
     return probs
 
 # ==============================
-# Streamlit UI - Aesthetic & Modern
+# Streamlit UI - Ultra-Modern & Aesthetic
 # ==============================
 st.set_page_config(
     page_title="Tuberculosis Detection App 🩺",
@@ -101,51 +101,49 @@ st.set_page_config(
 )
 
 # -------------------------------
-# Custom CSS for background & cards
+# Custom CSS
 # -------------------------------
-st.markdown(
-    """
-    <style>
-    /* Gradient Background */
-    .stApp {
-        background: linear-gradient(135deg, #FFDEE9 0%, #B5FFFC 100%);
-        background-attachment: fixed;
-    }
-    
-    /* Card container */
-    .card {
-        background: rgba(255, 255, 255, 0.85);
-        border-radius: 15px;
-        padding: 20px;
-        margin-bottom: 15px;
-        box-shadow: 0 8px 20px rgba(0,0,0,0.15);
-    }
+st.markdown("""
+<style>
+/* Lively Gradient Background */
+.stApp {
+    background: linear-gradient(120deg, #FF9A8B 0%, #FF6A88 50%, #FF99AC 100%);
+    background-attachment: fixed;
+}
 
-    /* Header */
-    h1 {
-        font-family: 'Segoe UI', sans-serif;
-        color: #1E3A8A;
-        text-align: center;
-    }
+/* Card Styling */
+.card {
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 20px;
+    padding: 25px;
+    margin-bottom: 15px;
+    box-shadow: 0 12px 30px rgba(0,0,0,0.18);
+}
 
-    /* Prediction texts */
-    .normal {
-        color: #16a34a;
-        font-weight: bold;
-    }
-    .tb {
-        color: #dc2626;
-        font-weight: bold;
-    }
+/* Headers */
+h1 {
+    font-family: 'Segoe UI', sans-serif;
+    color: #1E3A8A;
+    text-align: center;
+}
 
-    /* Progress bar customization */
-    .stProgress > div > div > div > div {
-        background: linear-gradient(90deg, #fcd34d, #3b82f6);
-        border-radius: 8px;
-    }
-    </style>
-    """, unsafe_allow_html=True
-)
+/* Prediction text colors */
+.normal { color: #16a34a; font-weight: bold; font-size:18px;}
+.tb { color: #dc2626; font-weight: bold; font-size:18px;}
+
+/* Hide default Streamlit progress bar */
+.stProgress > div > div > div > div {
+    background: linear-gradient(90deg, #fcd34d, #3b82f6);
+    border-radius: 12px;
+}
+
+/* Button Hover */
+button:hover {
+    background-color: #3b82f6 !important;
+    color: white !important;
+}
+</style>
+""", unsafe_allow_html=True)
 
 # -------------------------------
 # App Header
@@ -163,6 +161,18 @@ xray_file = st.file_uploader("🩻 Upload Chest X-ray Image (.png, .jpg, .jpeg)"
                              type=["png", "jpg", "jpeg"])
 
 # -------------------------------
+# Smooth Animated Progress Bar Function
+# -------------------------------
+def animated_progress(duration=2.0):
+    progress_bar = st.progress(0)
+    steps = 100
+    interval = duration / steps
+    for i in range(steps + 1):
+        progress_bar.progress(i)
+        time.sleep(interval)
+    progress_bar.empty()
+
+# -------------------------------
 # Predict Button
 # -------------------------------
 if st.button("Predict"):
@@ -177,18 +187,14 @@ if st.button("Predict"):
         if audio_file:
             st.info("Processing Audio Model...")
             audio_bytes = io.BytesIO(audio_file.read())
-            progress_bar = st.progress(0)
             with st.spinner("Running Audio Model..."):
-                for i in range(100):
-                    time.sleep(0.01)
-                    progress_bar.progress(i + 1)
+                animated_progress(duration=1.5)  # Smooth animated progress
                 audio_probs = predict_audio(audio_bytes)
-            with st.container():
-                st.markdown('<div class="card">', unsafe_allow_html=True)
-                st.markdown("### 🎤 Audio Model Results")
-                st.markdown(f"<p class='normal'>Normal: {audio_probs[0]*100:.2f}%</p>", unsafe_allow_html=True)
-                st.markdown(f"<p class='tb'>TB: {audio_probs[1]*100:.2f}%</p>", unsafe_allow_html=True)
-                st.markdown("</div>", unsafe_allow_html=True)
+            st.markdown('<div class="card">', unsafe_allow_html=True)
+            st.markdown("### 🎤 Audio Model Results")
+            st.markdown(f"<p class='normal'>Normal: {audio_probs[0]*100:.2f}%</p>", unsafe_allow_html=True)
+            st.markdown(f"<p class='tb'>TB: {audio_probs[1]*100:.2f}%</p>", unsafe_allow_html=True)
+            st.markdown("</div>", unsafe_allow_html=True)
             combined_probs.append(audio_probs)
 
         # -----------------------------
@@ -196,18 +202,14 @@ if st.button("Predict"):
         # -----------------------------
         if xray_file:
             st.info("Processing X-ray Model...")
-            progress_bar = st.progress(0)
             with st.spinner("Running X-ray Model..."):
-                for i in range(100):
-                    time.sleep(0.01)
-                    progress_bar.progress(i + 1)
+                animated_progress(duration=1.5)
                 xray_probs = predict_xray(xray_file)
-            with st.container():
-                st.markdown('<div class="card">', unsafe_allow_html=True)
-                st.markdown("### 🩻 X-ray Model Results")
-                st.markdown(f"<p class='normal'>Normal: {xray_probs[0]*100:.2f}%</p>", unsafe_allow_html=True)
-                st.markdown(f"<p class='tb'>TB: {xray_probs[1]*100:.2f}%</p>", unsafe_allow_html=True)
-                st.markdown("</div>", unsafe_allow_html=True)
+            st.markdown('<div class="card">', unsafe_allow_html=True)
+            st.markdown("### 🩻 X-ray Model Results")
+            st.markdown(f"<p class='normal'>Normal: {xray_probs[0]*100:.2f}%</p>", unsafe_allow_html=True)
+            st.markdown(f"<p class='tb'>TB: {xray_probs[1]*100:.2f}%</p>", unsafe_allow_html=True)
+            st.markdown("</div>", unsafe_allow_html=True)
             combined_probs.append(xray_probs)
 
         # -----------------------------
