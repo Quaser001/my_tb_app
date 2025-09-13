@@ -1,16 +1,24 @@
 
-streamlit==1.27.0
-rich==13.5.2
-markdown-it-py==4.0.0
-mdurl==0.1.2
-pygments==2.19.2
+# Core Streamlit dependencies
+streamlit==1.27.0        # Streamlit main framework
+rich==13.5.2             # Compatible with Streamlit 1.27.0 (<14)
+markdown-it-py==4.0.0    # Required by rich
+mdurl==0.1.2             # Required by markdown-it-py
+pygments==2.19.2         # Required by rich
 
-torch==2.8.0
-torchvision==0.23.0
-torchaudio==2.8.0
+# PyTorch ecosystem
+torch==2.8.0             # Latest compatible with Python 3.13
+torchvision==0.23.0      # Image utilities compatible with torch 2.8.0
+torchaudio==2.8.0        # Audio utilities compatible with torch 2.8.0
 
-numpy==1.24.4
-Pillow==9.5.0
+# Scientific computing / image processing
+numpy==1.24.4            # Compatible with Streamlit 1.27.0 (<2.0)
+Pillow==9.5.0            # Prebuilt wheel compatible with Python 3.13
+
+# Build tools (optional, but recommended for avoiding wheel/build errors)
+setuptools>=68.0.0
+wheel>=1.0.0
+
 
 
 
