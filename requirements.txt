@@ -1,14 +1,17 @@
+# Streamlit and dependencies
 streamlit==1.27.0
-rich>=10.14.0,<14  # compatible with Streamlit 1.27.0
+rich>=10.14.0,<14
 markdown-it-py==4.0.0
 mdurl==0.1.2
 pygments==2.19.2
+altair<6,>=4.0
+blinker<2,>=1.0.0
+cachetools<6,>=4.0
+click<9,>=7.0
+importlib-metadata<7,>=1.4
 
-numpy>=1.27.0,<2      # prebuilt wheels for Python 3.13
-torch>=2.8.1          # prebuilt CPU wheels
-torchvision>=0.15.2
-torchaudio>=2.8.1
-
-
-
-
+# Numerical and ML libraries
+numpy>=1.24,<2
+torch==2.8.0
+torchvision==0.23.0
+torchaudio==2.8.0
