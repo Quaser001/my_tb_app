@@ -107,7 +107,10 @@ def predict_xray(img_file):
 st.title("Tuberculosis Detection App 🩺")
 st.write("Upload **Audio (Cough)** or **X-ray** or both. The model predicts TB probability.")
 
-audio_file = st.file_uploader("Upload Cough Audio (.wav)", type=["wav"])
+audio_file = st.file_uploader(
+    "Upload Cough Audio", 
+    type=["wav", "mp3", "ogg", "flac"]
+)
 xray_file = st.file_uploader("Upload Chest X-ray Image (.png, .jpg, .jpeg)", type=["png", "jpg", "jpeg"])
 
 if st.button("Predict"):
