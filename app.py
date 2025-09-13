@@ -50,7 +50,7 @@ def preprocess_audio(file_bytes, sr=16000, n_mels=64, max_len=256):
     if original_sr != sr:
         wav = torchaudio.functional.resample(wav, original_sr, sr)
     if wav.shape[0] > 1:
-        wav = torch.mean(wav, dim=0, keepdim=True)  # convert to mono
+        wav = torch.mean(wav, dim=0, keepdim=True)  # mono
 
     mel = torchaudio.transforms.MelSpectrogram(
         sample_rate=sr, n_fft=400, hop_length=160, n_mels=n_mels
@@ -105,40 +105,25 @@ def predict_xray(img_file):
 # ==============================
 st.set_page_config(page_title="TB Detection App", layout="wide", page_icon="🩺")
 st.title("🩺 Tuberculosis Detection App")
-st.markdown(
-    """
-    <p style='font-size:16px;'>
-    Upload **Cough Audio** or **Chest X-ray Image** or both. The model predicts TB probability.
-    </p>
-    """, unsafe_allow_html=True
-)
+st.write("Upload **Cough Audio** or **Chest X-ray Image** or both. The model predicts TB probability.")
 
-# ==============================
-# File Uploaders
-# ==============================
+# File uploaders
 audio_file = st.file_uploader(
-    "Upload Cough Audio",
-    type=["wav", "mp3", "ogg", "flac"],
-    help="Supported formats: WAV, MP3, OGG, FLAC"
+    "Upload Cough Audio", type=["wav", "mp3", "ogg", "flac"]
 )
 xray_file = st.file_uploader(
-    "Upload Chest X-ray Image",
-    type=["png", "jpg", "jpeg"],
-    help="Supported formats: PNG, JPG, JPEG"
+    "Upload Chest X-ray Image", type=["png", "jpg", "jpeg"]
 )
 
-# ==============================
-# Prediction Button
-# ==============================
 if st.button("Predict"):
     if not audio_file and not xray_file:
         st.warning("Please upload at least one file!")
     else:
         combined_probs = []
 
-        # Use columns for better UI
         col1, col2 = st.columns(2)
 
+        # Audio Prediction
         if audio_file:
             with col1:
                 st.info("Running Audio Model...")
@@ -151,6 +136,7 @@ if st.button("Predict"):
                     unsafe_allow_html=True
                 )
 
+        # X-ray Prediction
         if xray_file:
             with col2:
                 st.info("Running X-ray Model...")
@@ -170,9 +156,9 @@ if st.button("Predict"):
                 f"**Combined Prediction:** Normal: {avg_probs[0]*100:.2f}%, TB: {avg_probs[1]*100:.2f}%"
             )
 
-        # Optional: Show progress bar for fun
+        # Progress bar
         import time
         progress_bar = st.progress(0)
         for i in range(100):
-            time.sleep(0.01)
+            time.sleep(0.005)
             progress_bar.progress(i + 1)
