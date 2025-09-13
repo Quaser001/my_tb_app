@@ -91,7 +91,7 @@ def predict_xray(img_file):
     return probs
 
 # ==============================
-# Streamlit UI - Ultra-Modern & Aesthetic
+# Streamlit UI - Designer Upgrade
 # ==============================
 st.set_page_config(
     page_title="Tuberculosis Detection App 🩺",
@@ -101,46 +101,80 @@ st.set_page_config(
 )
 
 # -------------------------------
-# Custom CSS
+# Custom CSS for Modern UI
 # -------------------------------
 st.markdown("""
 <style>
-/* Lively Gradient Background */
+/* Import cute modern fonts */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&family=Quicksand:wght@400;600&family=Montserrat:wght@400;700&display=swap');
+
+/* App Background Gradient */
 .stApp {
-    background: linear-gradient(120deg, #FF9A8B 0%, #FF6A88 50%, #FF99AC 100%);
+    background: linear-gradient(135deg, #FFDEE9 0%, #B5FFFC 100%);
     background-attachment: fixed;
+    font-family: 'Quicksand', sans-serif;
 }
 
-/* Card Styling */
+/* Card Style - Frosted Glass Effect */
 .card {
-    background: rgba(255, 255, 255, 0.9);
-    border-radius: 20px;
-    padding: 25px;
-    margin-bottom: 15px;
-    box-shadow: 0 12px 30px rgba(0,0,0,0.18);
+    background: rgba(255, 255, 255, 0.85);
+    border-radius: 25px;
+    padding: 30px;
+    margin-bottom: 20px;
+    box-shadow: 0 15px 40px rgba(0,0,0,0.2);
+    backdrop-filter: blur(10px);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+.card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 25px 60px rgba(0,0,0,0.3);
 }
 
-/* Headers */
+/* Header */
 h1 {
-    font-family: 'Segoe UI', sans-serif;
-    color: #1E3A8A;
+    font-family: 'Poppins', sans-serif;
+    color: #4B0082;
     text-align: center;
+    font-weight: 700;
+    font-size: 3rem;
 }
 
-/* Prediction text colors */
-.normal { color: #16a34a; font-weight: bold; font-size:18px;}
-.tb { color: #dc2626; font-weight: bold; font-size:18px;}
+/* Subtitle */
+.subtitle {
+    text-align: center;
+    color: #334155;
+    font-size: 1.2rem;
+    margin-bottom: 30px;
+}
 
-/* Hide default Streamlit progress bar */
+/* Prediction Colors */
+.normal { color: #10B981; font-weight: 600; font-size:18px; }
+.tb { color: #EF4444; font-weight: 600; font-size:18px; }
+
+/* Buttons */
+button {
+    border-radius: 12px;
+    font-family: 'Montserrat', sans-serif;
+    font-weight: 600;
+}
+button:hover {
+    background-color: #7C3AED !important;
+    color: white !important;
+}
+
+/* Animated Gradient Progress Bar */
 .stProgress > div > div > div > div {
-    background: linear-gradient(90deg, #fcd34d, #3b82f6);
+    background: linear-gradient(270deg, #FF6A88, #FF99AC, #B5FFFC, #FFDEE9);
+    background-size: 600% 600%;
+    animation: gradientAnimation 3s ease infinite;
     border-radius: 12px;
 }
 
-/* Button Hover */
-button:hover {
-    background-color: #3b82f6 !important;
-    color: white !important;
+/* Gradient Animation */
+@keyframes gradientAnimation {
+    0% {background-position: 0% 50%;}
+    50% {background-position: 100% 50%;}
+    100% {background-position: 0% 50%;}
 }
 </style>
 """, unsafe_allow_html=True)
@@ -149,7 +183,7 @@ button:hover {
 # App Header
 # -------------------------------
 st.markdown("<h1>🩺 Tuberculosis Detection App</h1>", unsafe_allow_html=True)
-st.markdown("<p style='text-align:center;color:#334155;'>Upload Cough Audio or X-ray or both. Get TB prediction instantly.</p>", unsafe_allow_html=True)
+st.markdown("<p class='subtitle'>Upload Cough Audio or Chest X-ray or both. Get TB prediction instantly.</p>", unsafe_allow_html=True)
 st.write("---")
 
 # -------------------------------
@@ -161,7 +195,7 @@ xray_file = st.file_uploader("🩻 Upload Chest X-ray Image (.png, .jpg, .jpeg)"
                              type=["png", "jpg", "jpeg"])
 
 # -------------------------------
-# Smooth Animated Progress Bar Function
+# Smooth Animated Progress Bar
 # -------------------------------
 def animated_progress(duration=2.0):
     progress_bar = st.progress(0)
@@ -181,14 +215,12 @@ if st.button("Predict"):
     else:
         combined_probs = []
 
-        # -----------------------------
         # Audio Prediction
-        # -----------------------------
         if audio_file:
             st.info("Processing Audio Model...")
             audio_bytes = io.BytesIO(audio_file.read())
             with st.spinner("Running Audio Model..."):
-                animated_progress(duration=1.5)  # Smooth animated progress
+                animated_progress(duration=1.5)
                 audio_probs = predict_audio(audio_bytes)
             st.markdown('<div class="card">', unsafe_allow_html=True)
             st.markdown("### 🎤 Audio Model Results")
@@ -197,9 +229,7 @@ if st.button("Predict"):
             st.markdown("</div>", unsafe_allow_html=True)
             combined_probs.append(audio_probs)
 
-        # -----------------------------
         # X-ray Prediction
-        # -----------------------------
         if xray_file:
             st.info("Processing X-ray Model...")
             with st.spinner("Running X-ray Model..."):
@@ -212,9 +242,7 @@ if st.button("Predict"):
             st.markdown("</div>", unsafe_allow_html=True)
             combined_probs.append(xray_probs)
 
-        # -----------------------------
         # Combined Prediction
-        # -----------------------------
         if len(combined_probs) == 2:
             avg_probs = np.mean(combined_probs, axis=0)
             st.markdown('<div class="card">', unsafe_allow_html=True)
