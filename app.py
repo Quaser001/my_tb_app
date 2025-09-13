@@ -44,20 +44,34 @@ xray_model.eval()
 # ==============================
 # Audio Preprocessing
 # ==============================
-def preprocess_audio(wav_path, sr=16000, n_mels=64, max_len=256):
+
+def preprocess_audio_from_file(uploaded_file, sr=16000, n_mels=64, max_len=256):
+    """
+    Convert any uploaded audio to WAV, then compute Mel Spectrogram.
+    """
+    # Convert to WAV in memory if not WAV
+    if not uploaded_file.name.lower().endswith(".wav"):
+        audio = AudioSegment.from_file(uploaded_file)
+        buf = io.BytesIO()
+        audio.export(buf, format="wav")
+        buf.seek(0)
+        wav_path = buf
+    else:
+        wav_path = uploaded_file
+
+    # Load audio with torchaudio
     wav, original_sr = torchaudio.load(wav_path)
     if original_sr != sr:
         wav = torchaudio.functional.resample(wav, original_sr, sr)
-    if wav.shape[0] > 1:
-        wav = torch.mean(wav, dim=0, keepdim=True)  # mono
 
     mel = torchaudio.transforms.MelSpectrogram(
         sample_rate=sr, n_fft=400, hop_length=160, n_mels=n_mels
-    )(wav)
+    )
     db = torchaudio.transforms.AmplitudeToDB()
-    spec = db(mel)
+    spec = db(mel(wav))
     spec = (spec - spec.mean()) / (spec.std() + 1e-6)
 
+    # Pad or trim
     if spec.shape[-1] < max_len:
         pad = max_len - spec.shape[-1]
         spec = torch.nn.functional.pad(spec, (0, pad))
@@ -66,6 +80,7 @@ def preprocess_audio(wav_path, sr=16000, n_mels=64, max_len=256):
 
     spec = spec.unsqueeze(0).to(device)  # add batch dim
     return spec
+
 
 # ==============================
 # X-ray Preprocessing
@@ -83,13 +98,11 @@ def preprocess_xray(img_file):
 # ==============================
 # Prediction Functions
 # ==============================
-def predict_audio(wav_path):
-    spec = preprocess_audio(wav_path)
-    with st.spinner("Running Audio Model..."):
-        torch.cuda.empty_cache()
-        with torch.no_grad():
-            out = audio_model(spec)
-            probs = torch.softmax(out, dim=1).cpu().numpy()[0]
+def predict_audio(uploaded_file):
+    spec = preprocess_audio_from_file(uploaded_file)
+    with torch.no_grad():
+        out = audio_model(spec)
+        probs = torch.softmax(out, dim=1).cpu().numpy()[0]
     return probs
 
 def predict_xray(img_file):
