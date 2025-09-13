@@ -1,18 +1,19 @@
 
 # Streamlit & UI
 streamlit==1.27.0
-rich==13.5.2          # must be <14 for Streamlit 1.27.0
+rich==13.5.2
 markdown-it-py==4.0.0
 mdurl==0.1.2
 pygments==2.19.2
 
-# PyTorch stack (Python 3.13 compatible)
-torch==2.2.0
-torchvision==0.15.2
-torchaudio==2.2.0
+# PyTorch stack
+torch==2.8.0
+torchvision==0.23.0
+torchaudio==2.8.0
 
 # Core libraries
-numpy==1.25.2
-Pillow==9.5.0
+numpy==2.3.3
+Pillow==9.4.0
+
 
 
