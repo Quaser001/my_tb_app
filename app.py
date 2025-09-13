@@ -10,8 +10,6 @@ from torchvision import transforms, models
 import torch.nn as nn
 import numpy as np
 from PIL import Image
-from io import BytesIO
-from pydub import AudioSegment
 
 # ==============================
 # Device
@@ -83,27 +81,10 @@ def preprocess_xray(img_file):
     return img
 
 # ==============================
-# Convert uploaded audio to WAV in-memory
-# ==============================
-def convert_to_wav(uploaded_file):
-    try:
-        audio = AudioSegment.from_file(uploaded_file)
-        buf = BytesIO()
-        audio.export(buf, format="wav")
-        buf.seek(0)
-        return buf
-    except Exception as e:
-        st.error(f"Error processing audio file: {e}")
-        return None
-
-# ==============================
 # Prediction Functions
 # ==============================
-def predict_audio(file_like):
-    wav_buf = convert_to_wav(file_like)
-    if wav_buf is None:
-        return np.array([0.0, 0.0])
-    spec = preprocess_audio(wav_buf)
+def predict_audio(wav_path):
+    spec = preprocess_audio(wav_path)
     with st.spinner("Running Audio Model..."):
         torch.cuda.empty_cache()
         with torch.no_grad():
@@ -126,7 +107,7 @@ def predict_xray(img_file):
 st.title("Tuberculosis Detection App 🩺")
 st.write("Upload **Audio (Cough)** or **X-ray** or both. The model predicts TB probability.")
 
-audio_file = st.file_uploader("Upload Cough Audio (wav/mp3/ogg/m4a)", type=["wav","mp3","ogg","m4a"])
+audio_file = st.file_uploader("Upload Cough Audio (.wav)", type=["wav"])
 xray_file = st.file_uploader("Upload Chest X-ray Image (.png, .jpg, .jpeg)", type=["png", "jpg", "jpeg"])
 
 if st.button("Predict"):
