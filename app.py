@@ -41,21 +41,38 @@ xray_model.eval()
 # ==============================
 # Audio Preprocessing
 # ==============================
-def preprocess_audio(wav_path, sr=16000, n_mels=64, max_len=256):
-    wav, original_sr = torchaudio.load(wav_path)
-    if original_sr != sr:
-        wav = torchaudio.functional.resample(wav, original_sr, sr)
-    mel = torchaudio.transforms.MelSpectrogram(sample_rate=sr, n_fft=400, hop_length=160, n_mels=n_mels)
-    db = torchaudio.transforms.AmplitudeToDB()
-    spec = db(mel(wav))
-    spec = (spec - spec.mean()) / (spec.std() + 1e-6)
-    if spec.shape[-1] < max_len:
-        pad = max_len - spec.shape[-1]
-        spec = torch.nn.functional.pad(spec, (0, pad))
-    else:
-        spec = spec[:, :, :max_len]
-    spec = spec.unsqueeze(0).to(device)  # add batch dim
-    return spec
+import torchaudio
+from pydub import AudioSegment
+import numpy as np
+import torch
+
+# Try to set soundfile backend for torchaudio
+try:
+    torchaudio.set_audio_backend("soundfile")
+except Exception as e:
+    print("Warning: could not set torchaudio backend to soundfile:", e)
+
+def preprocess_audio(wav_path, target_sr=16000):
+    """
+    Load and preprocess audio.
+    Tries torchaudio first, falls back to pydub if torchaudio fails.
+    """
+    try:
+        # --- Try torchaudio ---
+        wav, sr = torchaudio.load(wav_path)
+        if sr != target_sr:
+            wav = torchaudio.functional.resample(wav, sr, target_sr)
+        return wav, target_sr
+    except Exception as e:
+        print("torchaudio.load failed, falling back to pydub. Error:", e)
+
+        # --- Fallback to pydub ---
+        audio = AudioSegment.from_file(wav_path)
+        audio = audio.set_channels(1).set_frame_rate(target_sr)
+        samples = np.array(audio.get_array_of_samples()).astype(np.float32) / 32768.0
+        wav = torch.tensor(samples).unsqueeze(0)  # shape (1, N)
+        return wav, target_sr
+
 
 # ==============================
 # X-ray Preprocessing
