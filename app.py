@@ -56,6 +56,7 @@ import torch
 import numpy as np
 
 
+DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 def preprocess_audio(wav_path, target_sr=16000):
     """
     Load audio, resample if needed, and convert to MelSpectrogram.
