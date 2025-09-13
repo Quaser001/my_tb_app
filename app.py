@@ -1,7 +1,3 @@
-# =============================
-# Tuberculosis Detection App
-# =============================
-
 import streamlit as st
 import torch
 import torchaudio
@@ -10,6 +6,8 @@ from torchvision import transforms, models
 import torch.nn as nn
 import numpy as np
 from PIL import Image
+from pydub import AudioSegment
+import io
 
 # ==============================
 # Device
@@ -48,22 +46,15 @@ def preprocess_audio(wav_path, sr=16000, n_mels=64, max_len=256):
     wav, original_sr = torchaudio.load(wav_path)
     if original_sr != sr:
         wav = torchaudio.functional.resample(wav, original_sr, sr)
-    if wav.shape[0] > 1:
-        wav = torch.mean(wav, dim=0, keepdim=True)  # mono
-
-    mel = torchaudio.transforms.MelSpectrogram(
-        sample_rate=sr, n_fft=400, hop_length=160, n_mels=n_mels
-    )(wav)
+    mel = torchaudio.transforms.MelSpectrogram(sample_rate=sr, n_fft=400, hop_length=160, n_mels=n_mels)
     db = torchaudio.transforms.AmplitudeToDB()
-    spec = db(mel)
+    spec = db(mel(wav))
     spec = (spec - spec.mean()) / (spec.std() + 1e-6)
-
     if spec.shape[-1] < max_len:
         pad = max_len - spec.shape[-1]
         spec = torch.nn.functional.pad(spec, (0, pad))
     else:
         spec = spec[:, :, :max_len]
-
     spec = spec.unsqueeze(0).to(device)  # add batch dim
     return spec
 
@@ -81,24 +72,31 @@ def preprocess_xray(img_file):
     return img
 
 # ==============================
+# Audio format conversion
+# ==============================
+def audio_to_wav_like(uploaded_file):
+    audio = AudioSegment.from_file(io.BytesIO(uploaded_file.read()))
+    audio = audio.set_channels(1)
+    wav_io = io.BytesIO()
+    audio.export(wav_io, format="wav")
+    wav_io.seek(0)
+    return wav_io
+
+# ==============================
 # Prediction Functions
 # ==============================
 def predict_audio(wav_path):
     spec = preprocess_audio(wav_path)
-    with st.spinner("Running Audio Model..."):
-        torch.cuda.empty_cache()
-        with torch.no_grad():
-            out = audio_model(spec)
-            probs = torch.softmax(out, dim=1).cpu().numpy()[0]
+    with torch.no_grad():
+        out = audio_model(spec)
+        probs = torch.softmax(out, dim=1).cpu().numpy()[0]
     return probs
 
 def predict_xray(img_file):
     img = preprocess_xray(img_file)
-    with st.spinner("Running X-ray Model..."):
-        torch.cuda.empty_cache()
-        with torch.no_grad():
-            out = xray_model(img)
-            probs = torch.softmax(out, dim=1).cpu().numpy()[0]
+    with torch.no_grad():
+        out = xray_model(img)
+        probs = torch.softmax(out, dim=1).cpu().numpy()[0]
     return probs
 
 # ==============================
@@ -107,7 +105,7 @@ def predict_xray(img_file):
 st.title("Tuberculosis Detection App 🩺")
 st.write("Upload **Audio (Cough)** or **X-ray** or both. The model predicts TB probability.")
 
-audio_file = st.file_uploader("Upload Cough Audio (.wav)", type=["wav"])
+audio_file = st.file_uploader("Upload Cough Audio (.wav, .mp3, .ogg, .flac)", type=["wav", "mp3", "ogg", "flac"])
 xray_file = st.file_uploader("Upload Chest X-ray Image (.png, .jpg, .jpeg)", type=["png", "jpg", "jpeg"])
 
 if st.button("Predict"):
@@ -116,17 +114,32 @@ if st.button("Predict"):
     else:
         combined_probs = []
 
+        # -----------------------------
+        # Audio Prediction
+        # -----------------------------
         if audio_file:
+            st.info("Running Audio Model...")
+            # Convert non-wav files
+            if not audio_file.name.lower().endswith(".wav"):
+                audio_file = audio_to_wav_like(audio_file)
             audio_probs = predict_audio(audio_file)
             st.write(f"Audio Model Probabilities: Normal: {audio_probs[0]*100:.2f}%, TB: {audio_probs[1]*100:.2f}%")
             combined_probs.append(audio_probs)
 
+        # -----------------------------
+        # X-ray Prediction
+        # -----------------------------
         if xray_file:
+            st.info("Running X-ray Model...")
             xray_probs = predict_xray(xray_file)
             st.write(f"X-ray Model Probabilities: Normal: {xray_probs[0]*100:.2f}%, TB: {xray_probs[1]*100:.2f}%")
             combined_probs.append(xray_probs)
 
+        # -----------------------------
         # Combined Prediction
-        if combined_probs:
+        # -----------------------------
+        if len(combined_probs) == 2:
             avg_probs = np.mean(combined_probs, axis=0)
             st.success(f"Combined Prediction: Normal: {avg_probs[0]*100:.2f}%, TB: {avg_probs[1]*100:.2f}%")
+        elif len(combined_probs) == 1:
+            st.success(f"Prediction: Normal: {combined_probs[0][0]*100:.2f}%, TB: {combined_probs[0][1]*100:.2f}%")
