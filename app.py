@@ -174,8 +174,7 @@ button:hover {
 # -------------------------------
 st.markdown("<h1>🩺 MEDI-FUSION</h1>", unsafe_allow_html=True)
 st.markdown("<p class='info-text' style='text-align:center;'>Upload your cough audio or chest X-ray for a quick diagnosis! ✨</p>", unsafe_allow_html=True)
-st.markdown("<p class='info-text' style='text-align:center;'>A hackathon project undertaken by team Pheonix</p>", unsafe_allow_html=True)
-st.write("---")
+
 
 # ==============================
 # Streamlit File Uploaders
