@@ -91,66 +91,67 @@ def predict_xray(img_file):
     return probs
 
 # ==============================
-# UI Enhancements - Expert Designer Touch
+# UI Enhancements - Dark Cozy Professional
 # ==============================
 st.markdown("""
 <style>
 /* -------------------------- Background -------------------------- */
 .stApp {
-    background: linear-gradient(135deg, #FFDEE9 0%, #B5FFFC 100%);
-    background-attachment: fixed;
+    background-color: #1A1A2E;
+    color: #E0E0E0;
     font-family: 'Quicksand', sans-serif;
 }
 
-/* -------------------------- Cards -------------------------- */
+/* -------------------------- Cards (glassmorphism effect) -------------------------- */
 .card {
-    background: rgba(255, 255, 255, 0.85);
-    border-radius: 25px;
+    background: rgba(30, 30, 60, 0.85);
+    backdrop-filter: blur(8px);
+    border-radius: 20px;
     padding: 25px;
     margin-bottom: 20px;
-    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
     transition: all 0.3s ease-in-out;
 }
 .card:hover {
     transform: translateY(-5px);
-    box-shadow: 0 20px 50px rgba(0,0,0,0.2);
+    box-shadow: 0 15px 40px rgba(0,0,0,0.7);
 }
 
 /* -------------------------- Headers -------------------------- */
 h1 {
     font-family: 'Poppins', sans-serif;
-    color: #FF6B6B; 
+    color: #FFD369; 
     text-align: center;
     font-weight: 700;
     letter-spacing: 1px;
 }
 h2, h3 {
     font-family: 'Quicksand', sans-serif;
-    color: #1E3A8A;
+    color: #FF7E5F;
 }
 
 /* -------------------------- Prediction Text -------------------------- */
 .normal { color: #38BDF8; font-weight: 700; font-size: 18px; }
 .tb { color: #FF6B6B; font-weight: 700; font-size: 18px; }
-.info-text { color: #8E44AD; font-size:16px; font-weight:500; }
+.info-text { color: #FFD369; font-size:16px; font-weight:500; }
 
 /* -------------------------- Buttons -------------------------- */
 button {
-    background: linear-gradient(135deg, #38BDF8, #4ADE80);
-    color: #fff;
+    background: linear-gradient(135deg, #FF7E5F, #FFD369);
+    color: #1A1A2E;
     font-weight: bold;
     border-radius: 15px;
     padding: 10px 30px;
     transition: 0.3s ease;
 }
 button:hover {
-    background: linear-gradient(135deg, #4ADE80, #38BDF8);
+    background: linear-gradient(135deg, #FFD369, #FF7E5F);
     transform: scale(1.05);
 }
 
 /* -------------------------- Progress Bar -------------------------- */
 .stProgress > div > div > div > div {
-    background: linear-gradient(270deg, #38BDF8, #C77DFF, #FF6B6B, #38BDF8);
+    background: linear-gradient(270deg, #38BDF8, #FF7E5F, #FFD369);
     border-radius: 15px;
     opacity: 0.9;
     transition: width 0.6s ease-in-out;
@@ -160,17 +161,19 @@ button:hover {
 .css-1aumxhk {
     font-size: 16px;
     font-weight: 500;
+    color: #E0E0E0;
 }
 .css-1y0tads {
     border-radius: 15px;
-    background: rgba(255,255,255,0.85);
+    background: rgba(40, 40, 70, 0.85);
     padding: 10px;
+    color: #E0E0E0;
 }
 </style>
 """, unsafe_allow_html=True)
 
 # -------------------------------
-# Cute Header & Subtext
+# Header & Subtext
 # -------------------------------
 st.markdown("<h1>🩺 TB Detection Magic</h1>", unsafe_allow_html=True)
 st.markdown("<p class='info-text' style='text-align:center;'>Upload your cough audio or chest X-ray 🩻. The model will do its magic! ✨</p>", unsafe_allow_html=True)
@@ -197,7 +200,7 @@ if st.button("Predict"):
         my_bar = st.progress(0, text=progress_text)
 
         for i in range(101):
-            time.sleep(0.01)  # Simulate smooth animated progress
+            time.sleep(0.01)
             my_bar.progress(i, text=progress_text)
 
         # Audio Prediction
@@ -205,14 +208,14 @@ if st.button("Predict"):
             st.info("Running Audio Model...")
             audio_bytes = io.BytesIO(audio_file.read())
             audio_probs = predict_audio(audio_bytes)
-            st.markdown(f"<p class='normal'>Audio Model Probabilities: Normal: {audio_probs[0]*100:.2f}%, TB: {audio_probs[1]*100:.2f}%</p>", unsafe_allow_html=True)
+            st.markdown(f"<div class='card'><p class='normal'>Audio Model Probabilities: Normal: {audio_probs[0]*100:.2f}%, TB: {audio_probs[1]*100:.2f}%</p></div>", unsafe_allow_html=True)
             combined_probs.append(audio_probs)
 
         # X-ray Prediction
         if xray_file:
             st.info("Running X-ray Model...")
             xray_probs = predict_xray(xray_file)
-            st.markdown(f"<p class='tb'>X-ray Model Probabilities: Normal: {xray_probs[0]*100:.2f}%, TB: {xray_probs[1]*100:.2f}%</p>", unsafe_allow_html=True)
+            st.markdown(f"<div class='card'><p class='tb'>X-ray Model Probabilities: Normal: {xray_probs[0]*100:.2f}%, TB: {xray_probs[1]*100:.2f}%</p></div>", unsafe_allow_html=True)
             combined_probs.append(xray_probs)
 
         # Combined Prediction
