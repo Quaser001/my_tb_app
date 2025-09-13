@@ -10,7 +10,6 @@ from torchvision import transforms, models
 import torch.nn as nn
 import numpy as np
 from PIL import Image
-from io import BytesIO
 
 # ==============================
 # Device
@@ -45,8 +44,8 @@ xray_model.eval()
 # ==============================
 # Audio Preprocessing
 # ==============================
-def preprocess_audio(file_bytes, sr=16000, n_mels=64, max_len=256):
-    wav, original_sr = torchaudio.load(BytesIO(file_bytes))
+def preprocess_audio(wav_path, sr=16000, n_mels=64, max_len=256):
+    wav, original_sr = torchaudio.load(wav_path)
     if original_sr != sr:
         wav = torchaudio.functional.resample(wav, original_sr, sr)
     if wav.shape[0] > 1:
@@ -71,7 +70,9 @@ def preprocess_audio(file_bytes, sr=16000, n_mels=64, max_len=256):
 # ==============================
 # X-ray Preprocessing
 # ==============================
-xray_transform = transforms.Compose([transforms.Resize((224, 224))])
+xray_transform = transforms.Compose([
+    transforms.Resize((224, 224)),
+])
 
 def preprocess_xray(img_file):
     img = Image.open(img_file).convert("RGB")
@@ -82,8 +83,8 @@ def preprocess_xray(img_file):
 # ==============================
 # Prediction Functions
 # ==============================
-def predict_audio(file_bytes):
-    spec = preprocess_audio(file_bytes)
+def predict_audio(wav_path):
+    spec = preprocess_audio(wav_path)
     with st.spinner("Running Audio Model..."):
         torch.cuda.empty_cache()
         with torch.no_grad():
@@ -103,17 +104,11 @@ def predict_xray(img_file):
 # ==============================
 # Streamlit UI
 # ==============================
-st.set_page_config(page_title="TB Detection App", layout="wide", page_icon="🩺")
-st.title("🩺 Tuberculosis Detection App")
-st.write("Upload **Cough Audio** or **Chest X-ray Image** or both. The model predicts TB probability.")
+st.title("Tuberculosis Detection App 🩺")
+st.write("Upload **Audio (Cough)** or **X-ray** or both. The model predicts TB probability.")
 
-# File uploaders
-audio_file = st.file_uploader(
-    "Upload Cough Audio", type=["wav", "mp3", "ogg", "flac"]
-)
-xray_file = st.file_uploader(
-    "Upload Chest X-ray Image", type=["png", "jpg", "jpeg"]
-)
+audio_file = st.file_uploader("Upload Cough Audio (.wav)", type=["wav"])
+xray_file = st.file_uploader("Upload Chest X-ray Image (.png, .jpg, .jpeg)", type=["png", "jpg", "jpeg"])
 
 if st.button("Predict"):
     if not audio_file and not xray_file:
@@ -121,44 +116,17 @@ if st.button("Predict"):
     else:
         combined_probs = []
 
-        col1, col2 = st.columns(2)
-
-        # Audio Prediction
         if audio_file:
-            with col1:
-                st.info("Running Audio Model...")
-                file_bytes = audio_file.read()
-                audio_probs = predict_audio(file_bytes)
-                combined_probs.append(audio_probs)
-                st.markdown(
-                    f"<h4 style='color:blue;'>Audio Probabilities:</h4>"
-                    f"Normal: {audio_probs[0]*100:.2f}%  |  TB: {audio_probs[1]*100:.2f}%",
-                    unsafe_allow_html=True
-                )
+            audio_probs = predict_audio(audio_file)
+            st.write(f"Audio Model Probabilities: Normal: {audio_probs[0]*100:.2f}%, TB: {audio_probs[1]*100:.2f}%")
+            combined_probs.append(audio_probs)
 
-        # X-ray Prediction
         if xray_file:
-            with col2:
-                st.info("Running X-ray Model...")
-                xray_probs = predict_xray(xray_file)
-                combined_probs.append(xray_probs)
-                st.markdown(
-                    f"<h4 style='color:green;'>X-ray Probabilities:</h4>"
-                    f"Normal: {xray_probs[0]*100:.2f}%  |  TB: {xray_probs[1]*100:.2f}%",
-                    unsafe_allow_html=True
-                )
+            xray_probs = predict_xray(xray_file)
+            st.write(f"X-ray Model Probabilities: Normal: {xray_probs[0]*100:.2f}%, TB: {xray_probs[1]*100:.2f}%")
+            combined_probs.append(xray_probs)
 
         # Combined Prediction
         if combined_probs:
             avg_probs = np.mean(combined_probs, axis=0)
-            st.markdown("---")
-            st.success(
-                f"**Combined Prediction:** Normal: {avg_probs[0]*100:.2f}%, TB: {avg_probs[1]*100:.2f}%"
-            )
-
-        # Progress bar
-        import time
-        progress_bar = st.progress(0)
-        for i in range(100):
-            time.sleep(0.005)
-            progress_bar.progress(i + 1)
+            st.success(f"Combined Prediction: Normal: {avg_probs[0]*100:.2f}%, TB: {avg_probs[1]*100:.2f}%")
