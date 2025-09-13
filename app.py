@@ -5,6 +5,7 @@ import torchvision.transforms as transforms
 from torchvision import models
 from PIL import Image
 import numpy as np
+import time
 
 # ----------------------------
 # Device
@@ -16,9 +17,9 @@ DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 # ----------------------------
 @st.cache_resource(show_spinner=False)
 def load_audio_model():
-    # Placeholder: replace with your actual model loading
+    # Replace with your actual audio model
     model = torch.nn.Sequential(
-        torch.nn.Linear(128, 2),  # Example
+        torch.nn.Linear(128, 2),  # Dummy layer for example
         torch.nn.Softmax(dim=1)
     )
     model.eval()
@@ -45,10 +46,9 @@ xray_classes = ["Normal", "TB"]
 # ----------------------------
 def preprocess_audio(file):
     waveform, sr = torchaudio.load(file)
-    # Example: compute Mel Spectrogram (modify according to your trained model)
     mel_spec = torchaudio.transforms.MelSpectrogram(sample_rate=sr)(waveform)
-    mel_spec = mel_spec.mean(dim=0)  # simple average over channels
-    mel_spec = mel_spec.unsqueeze(0).to(DEVICE)  # add batch dim
+    mel_spec = mel_spec.mean(dim=0)  # average over channels
+    mel_spec = mel_spec.unsqueeze(0).to(DEVICE)  # add batch dimension
     return mel_spec
 
 # ----------------------------
@@ -56,8 +56,10 @@ def preprocess_audio(file):
 # ----------------------------
 def predict_audio(file):
     mel_spec = preprocess_audio(file)
-    with torch.no_grad():
-        probs = audio_model(mel_spec.float())
+    with st.spinner("Running audio model..."):
+        time.sleep(0.5)  # Optional: simulate processing delay
+        with torch.no_grad():
+            probs = audio_model(mel_spec.float())
     return probs.cpu().numpy().flatten()
 
 # ----------------------------
@@ -79,16 +81,18 @@ def preprocess_xray(image):
 # ----------------------------
 def predict_xray(image):
     img_tensor = preprocess_xray(image)
-    with torch.no_grad():
-        probs = torch.nn.functional.softmax(xray_model(img_tensor), dim=1)
+    with st.spinner("Running X-ray model..."):
+        time.sleep(0.5)  # Optional: simulate processing delay
+        with torch.no_grad():
+            probs = torch.nn.functional.softmax(xray_model(img_tensor), dim=1)
     return probs.cpu().numpy().flatten()
 
 # ----------------------------
 # Streamlit UI
 # ----------------------------
 st.title("Multi-Modal TB Detection")
-
 st.sidebar.header("Upload Inputs")
+
 audio_file = st.sidebar.file_uploader("Upload Audio (WAV)", type=["wav"])
 xray_file = st.sidebar.file_uploader("Upload X-ray Image", type=["png", "jpg", "jpeg"])
 
@@ -99,26 +103,23 @@ if audio_file or xray_file:
 
     # Audio Prediction
     if audio_file:
-        st.info("Running Audio Model...")
         audio_probs = predict_audio(audio_file)
         combined_probs.append(audio_probs)
         audio_prob_dict = {name: f"{prob*100:.2f}%" for name, prob in zip(audio_classes, audio_probs)}
-        st.write("Audio Model Probabilities:", audio_prob_dict)
+        st.write("**Audio Model Probabilities:**", audio_prob_dict)
 
     # X-ray Prediction
     if xray_file:
-        st.info("Running X-ray Model...")
         xray_probs = predict_xray(xray_file)
         combined_probs.append(xray_probs)
         xray_prob_dict = {name: f"{prob*100:.2f}%" for name, prob in zip(xray_classes, xray_probs)}
-        st.write("X-ray Model Probabilities:", xray_prob_dict)
+        st.write("**X-ray Model Probabilities:**", xray_prob_dict)
 
     # Combined (Average) Probabilities
     if combined_probs:
         combined_arr = np.mean(np.array(combined_probs), axis=0)
         combined_dict = {name: f"{prob*100:.2f}%" for name, prob in zip(audio_classes, combined_arr)}
-        st.subheader("Combined Probabilities")
+        st.subheader("**Combined Probabilities**")
         st.write(combined_dict)
 
-st.info("Upload audio or X-ray to get TB prediction.")
-
+st.info("Upload audio and/or X-ray to get TB prediction.")
