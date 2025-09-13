@@ -1,19 +1,14 @@
 
-# Streamlit & UI
-streamlit==1.27.0
-rich==13.5.2
-markdown-it-py==4.0.0
-mdurl==0.1.2
-pygments==2.19.2
-
-# PyTorch stack
-torch==2.8.0
-torchvision==0.23.0
-torchaudio==2.8.0
-
-# Core libraries
-numpy==2.3.3
-Pillow==9.4.0
+%%writefile /content/my_tb_app/requirements.txt
+streamlit
+torch
+torchaudio
+torchvision
+pandas
+scikit-learn
+numpy
+matplotlib
+seaborn
 
 
 
