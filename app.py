@@ -1,5 +1,4 @@
-# app.py
-import streamlit as st
+#import streamlit as st
 import torch
 import torchaudio
 import torchvision
@@ -9,14 +8,11 @@ import numpy as np
 from PIL import Image
 import tempfile
 
-# ==============================
-# Device
-# ==============================
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-# ==============================
-# Load Audio Model
-# ==============================
+# -------------------------------
+# Models
+# -------------------------------
 def build_resnet_audio(n_classes=2):
     model = models.resnet18(weights=models.ResNet18_Weights.IMAGENET1K_V1)
     model.conv1 = nn.Conv2d(1, 64, kernel_size=7, stride=2, padding=3, bias=False)
@@ -27,9 +23,6 @@ audio_model = build_resnet_audio()
 audio_model.load_state_dict(torch.load("audio_best.pt", map_location=device))
 audio_model.eval()
 
-# ==============================
-# Load X-ray Model
-# ==============================
 def build_resnet_xray(n_classes=2):
     model = models.resnet18(weights=models.ResNet18_Weights.IMAGENET1K_V1)
     model.fc = nn.Linear(model.fc.in_features, n_classes)
@@ -39,11 +32,10 @@ xray_model = build_resnet_xray()
 xray_model.load_state_dict(torch.load("xray_best.pt", map_location=device))
 xray_model.eval()
 
-# ==============================
-# Audio Preprocessing
-# ==============================
+# -------------------------------
+# Preprocessing
+# -------------------------------
 def preprocess_audio(wav_file, sr=16000, n_mels=64, max_len=256):
-    # Save uploaded BytesIO file to temp
     if hasattr(wav_file, "read"):
         with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as tmp:
             tmp.write(wav_file.read())
@@ -63,33 +55,25 @@ def preprocess_audio(wav_file, sr=16000, n_mels=64, max_len=256):
         spec = torch.nn.functional.pad(spec, (0, pad))
     else:
         spec = spec[:, :, :max_len]
-    spec = spec.unsqueeze(0).to(device)  # add batch dim
-    return spec
+    return spec.unsqueeze(0).to(device)
 
-# ==============================
-# X-ray Preprocessing
-# ==============================
-xray_transform = transforms.Compose([
-    transforms.Resize((224, 224)),
-])
+xray_transform = transforms.Compose([transforms.Resize((224,224))])
 
 def preprocess_xray(img_file):
-    # Save uploaded BytesIO file to temp
     if hasattr(img_file, "read"):
         with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmp:
             tmp.write(img_file.read())
             img_path = tmp.name
     else:
         img_path = img_file
-
     img = Image.open(img_path).convert("RGB")
     img = xray_transform(img)
     img = torchvision.transforms.functional.to_tensor(img).unsqueeze(0).to(device)
     return img
 
-# ==============================
-# Prediction Functions
-# ==============================
+# -------------------------------
+# Prediction
+# -------------------------------
 def predict_audio(wav_file):
     spec = preprocess_audio(wav_file)
     with torch.no_grad():
@@ -104,15 +88,15 @@ def predict_xray(img_file):
         probs = torch.softmax(out, dim=1).cpu().numpy()[0]
     return probs
 
-# ==============================
+# -------------------------------
 # Streamlit UI
-# ==============================
-st.set_page_config(page_title="Tuberculosis Detection App 🩺", layout="centered")
+# -------------------------------
+st.set_page_config(page_title="TB Detection App", layout="centered")
 st.title("Tuberculosis Detection App 🩺")
-st.write("Upload **Audio (Cough)** or **X-ray** or both. The model predicts TB probability.")
+st.write("Upload **Cough Audio** or **X-ray** or both. The model predicts TB probability.")
 
 audio_file = st.file_uploader("Upload Cough Audio (.wav)", type=["wav"])
-xray_file = st.file_uploader("Upload Chest X-ray Image (.png, .jpg, .jpeg)", type=["png", "jpg", "jpeg"])
+xray_file = st.file_uploader("Upload Chest X-ray Image (.png, .jpg, .jpeg)", type=["png","jpg","jpeg"])
 
 if st.button("Predict"):
     if not audio_file and not xray_file:
@@ -120,7 +104,6 @@ if st.button("Predict"):
     else:
         combined_probs = []
 
-        # Audio Prediction
         if audio_file:
             st.info("Running Audio Model...")
             try:
@@ -130,7 +113,6 @@ if st.button("Predict"):
             except Exception as e:
                 st.error(f"Audio Prediction Failed: {e}")
 
-        # X-ray Prediction
         if xray_file:
             st.info("Running X-ray Model...")
             try:
@@ -140,9 +122,10 @@ if st.button("Predict"):
             except Exception as e:
                 st.error(f"X-ray Prediction Failed: {e}")
 
-        # Combined Result
         if len(combined_probs) == 2:
             avg_probs = np.mean(combined_probs, axis=0)
             st.success(f"Combined Prediction: Normal: {avg_probs[0]*100:.2f}%, TB: {avg_probs[1]*100:.2f}%")
         elif len(combined_probs) == 1:
             st.success(f"Prediction: Normal: {combined_probs[0][0]*100:.2f}%, TB: {combined_probs[0][1]*100:.2f}%")
+
+
