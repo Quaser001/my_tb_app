@@ -1,4 +1,4 @@
-
+# app.py
 import streamlit as st
 import torch
 import torchaudio
@@ -7,6 +7,7 @@ from torchvision import transforms, models
 import torch.nn as nn
 import numpy as np
 from PIL import Image
+import tempfile
 
 # ==============================
 # Device
@@ -41,7 +42,15 @@ xray_model.eval()
 # ==============================
 # Audio Preprocessing
 # ==============================
-def preprocess_audio(wav_path, sr=16000, n_mels=64, max_len=256):
+def preprocess_audio(wav_file, sr=16000, n_mels=64, max_len=256):
+    # Save uploaded BytesIO file to temp if needed
+    if hasattr(wav_file, "read"):
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as tmp:
+            tmp.write(wav_file.read())
+            wav_path = tmp.name
+    else:
+        wav_path = wav_file
+
     wav, original_sr = torchaudio.load(wav_path)
     if original_sr != sr:
         wav = torchaudio.functional.resample(wav, original_sr, sr)
@@ -73,8 +82,8 @@ def preprocess_xray(img_file):
 # ==============================
 # Prediction Functions
 # ==============================
-def predict_audio(wav_path):
-    spec = preprocess_audio(wav_path)
+def predict_audio(wav_file):
+    spec = preprocess_audio(wav_file)
     with torch.no_grad():
         out = audio_model(spec)
         probs = torch.softmax(out, dim=1).cpu().numpy()[0]
@@ -90,6 +99,7 @@ def predict_xray(img_file):
 # ==============================
 # Streamlit UI
 # ==============================
+st.set_page_config(page_title="Tuberculosis Detection App 🩺", layout="centered")
 st.title("Tuberculosis Detection App 🩺")
 st.write("Upload **Audio (Cough)** or **X-ray** or both. The model predicts TB probability.")
 
@@ -101,16 +111,27 @@ if st.button("Predict"):
         st.warning("Please upload at least one file!")
     else:
         combined_probs = []
+        # Audio Prediction
         if audio_file:
             st.info("Running Audio Model...")
-            audio_probs = predict_audio(audio_file)
-            st.write(f"Audio Model Probabilities: Normal: {audio_probs[0]*100:.2f}%, TB: {audio_probs[1]*100:.2f}%")
-            combined_probs.append(audio_probs)
+            try:
+                audio_probs = predict_audio(audio_file)
+                st.write(f"Audio Model Probabilities: Normal: {audio_probs[0]*100:.2f}%, TB: {audio_probs[1]*100:.2f}%")
+                combined_probs.append(audio_probs)
+            except Exception as e:
+                st.error(f"Audio Prediction Failed: {e}")
+        
+        # X-ray Prediction
         if xray_file:
             st.info("Running X-ray Model...")
-            xray_probs = predict_xray(xray_file)
-            st.write(f"X-ray Model Probabilities: Normal: {xray_probs[0]*100:.2f}%, TB: {xray_probs[1]*100:.2f}%")
-            combined_probs.append(xray_probs)
+            try:
+                xray_probs = predict_xray(xray_file)
+                st.write(f"X-ray Model Probabilities: Normal: {xray_probs[0]*100:.2f}%, TB: {xray_probs[1]*100:.2f}%")
+                combined_probs.append(xray_probs)
+            except Exception as e:
+                st.error(f"X-ray Prediction Failed: {e}")
+        
+        # Combined Result
         if len(combined_probs) == 2:
             avg_probs = np.mean(combined_probs, axis=0)
             st.success(f"Combined Prediction: Normal: {avg_probs[0]*100:.2f}%, TB: {avg_probs[1]*100:.2f}%")
