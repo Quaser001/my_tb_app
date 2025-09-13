@@ -43,7 +43,7 @@ xray_model.eval()
 # Audio Preprocessing
 # ==============================
 def preprocess_audio(wav_file, sr=16000, n_mels=64, max_len=256):
-    # Save uploaded BytesIO file to temp if needed
+    # Save uploaded BytesIO file to temp
     if hasattr(wav_file, "read"):
         with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as tmp:
             tmp.write(wav_file.read())
@@ -74,7 +74,15 @@ xray_transform = transforms.Compose([
 ])
 
 def preprocess_xray(img_file):
-    img = Image.open(img_file).convert("RGB")
+    # Save uploaded BytesIO file to temp
+    if hasattr(img_file, "read"):
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmp:
+            tmp.write(img_file.read())
+            img_path = tmp.name
+    else:
+        img_path = img_file
+
+    img = Image.open(img_path).convert("RGB")
     img = xray_transform(img)
     img = torchvision.transforms.functional.to_tensor(img).unsqueeze(0).to(device)
     return img
@@ -111,6 +119,7 @@ if st.button("Predict"):
         st.warning("Please upload at least one file!")
     else:
         combined_probs = []
+
         # Audio Prediction
         if audio_file:
             st.info("Running Audio Model...")
@@ -120,7 +129,7 @@ if st.button("Predict"):
                 combined_probs.append(audio_probs)
             except Exception as e:
                 st.error(f"Audio Prediction Failed: {e}")
-        
+
         # X-ray Prediction
         if xray_file:
             st.info("Running X-ray Model...")
@@ -130,7 +139,7 @@ if st.button("Predict"):
                 combined_probs.append(xray_probs)
             except Exception as e:
                 st.error(f"X-ray Prediction Failed: {e}")
-        
+
         # Combined Result
         if len(combined_probs) == 2:
             avg_probs = np.mean(combined_probs, axis=0)
