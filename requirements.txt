@@ -1,24 +1,18 @@
 
-# Streamlit core
+# Streamlit & UI
 streamlit==1.27.0
-
-# Torch stack (Python 3.13 compatible)
-torch==2.8.0
-torchvision==0.23.0
-torchaudio==2.8.0
-
-# Dependencies compatible with Streamlit 1.27.0
-numpy==2.3.3
-Pillow==9.5.0       # must be <10
-pandas==2.3.2
-altair==5.5.0
-click==8.2.1
-blinker==1.9.0
-cachetools==5.5.2
-importlib-metadata==6.11.0
-packaging==23.2
+rich==13.5.2          # must be <14 for Streamlit 1.27.0
 markdown-it-py==4.0.0
-pygments==2.19.2
 mdurl==0.1.2
-rich==14.1.0
+pygments==2.19.2
+
+# PyTorch stack (Python 3.13 compatible)
+torch==2.2.0
+torchvision==0.15.2
+torchaudio==2.2.0
+
+# Core libraries
+numpy==1.25.2
+Pillow==9.5.0
+
 
