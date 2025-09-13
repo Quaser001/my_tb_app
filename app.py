@@ -10,8 +10,9 @@ from torchvision import transforms, models
 import torch.nn as nn
 import numpy as np
 from PIL import Image
+from io import BytesIO
 from pydub import AudioSegment
-import io
+
 # ==============================
 # Device
 # ==============================
@@ -45,34 +46,20 @@ xray_model.eval()
 # ==============================
 # Audio Preprocessing
 # ==============================
-
-def preprocess_audio_from_file(uploaded_file, sr=16000, n_mels=64, max_len=256):
-    """
-    Convert any uploaded audio to WAV, then compute Mel Spectrogram.
-    """
-    # Convert to WAV in memory if not WAV
-    if not uploaded_file.name.lower().endswith(".wav"):
-        audio = AudioSegment.from_file(uploaded_file)
-        buf = io.BytesIO()
-        audio.export(buf, format="wav")
-        buf.seek(0)
-        wav_path = buf
-    else:
-        wav_path = uploaded_file
-
-    # Load audio with torchaudio
+def preprocess_audio(wav_path, sr=16000, n_mels=64, max_len=256):
     wav, original_sr = torchaudio.load(wav_path)
     if original_sr != sr:
         wav = torchaudio.functional.resample(wav, original_sr, sr)
+    if wav.shape[0] > 1:
+        wav = torch.mean(wav, dim=0, keepdim=True)  # mono
 
     mel = torchaudio.transforms.MelSpectrogram(
         sample_rate=sr, n_fft=400, hop_length=160, n_mels=n_mels
-    )
+    )(wav)
     db = torchaudio.transforms.AmplitudeToDB()
-    spec = db(mel(wav))
+    spec = db(mel)
     spec = (spec - spec.mean()) / (spec.std() + 1e-6)
 
-    # Pad or trim
     if spec.shape[-1] < max_len:
         pad = max_len - spec.shape[-1]
         spec = torch.nn.functional.pad(spec, (0, pad))
@@ -81,7 +68,6 @@ def preprocess_audio_from_file(uploaded_file, sr=16000, n_mels=64, max_len=256):
 
     spec = spec.unsqueeze(0).to(device)  # add batch dim
     return spec
-
 
 # ==============================
 # X-ray Preprocessing
@@ -97,13 +83,32 @@ def preprocess_xray(img_file):
     return img
 
 # ==============================
+# Convert uploaded audio to WAV in-memory
+# ==============================
+def convert_to_wav(uploaded_file):
+    try:
+        audio = AudioSegment.from_file(uploaded_file)
+        buf = BytesIO()
+        audio.export(buf, format="wav")
+        buf.seek(0)
+        return buf
+    except Exception as e:
+        st.error(f"Error processing audio file: {e}")
+        return None
+
+# ==============================
 # Prediction Functions
 # ==============================
-def predict_audio(uploaded_file):
-    spec = preprocess_audio_from_file(uploaded_file)
-    with torch.no_grad():
-        out = audio_model(spec)
-        probs = torch.softmax(out, dim=1).cpu().numpy()[0]
+def predict_audio(file_like):
+    wav_buf = convert_to_wav(file_like)
+    if wav_buf is None:
+        return np.array([0.0, 0.0])
+    spec = preprocess_audio(wav_buf)
+    with st.spinner("Running Audio Model..."):
+        torch.cuda.empty_cache()
+        with torch.no_grad():
+            out = audio_model(spec)
+            probs = torch.softmax(out, dim=1).cpu().numpy()[0]
     return probs
 
 def predict_xray(img_file):
@@ -121,10 +126,7 @@ def predict_xray(img_file):
 st.title("Tuberculosis Detection App 🩺")
 st.write("Upload **Audio (Cough)** or **X-ray** or both. The model predicts TB probability.")
 
-audio_file = st.file_uploader(
-    "Upload Cough Audio", 
-    type=["wav", "mp3", "ogg", "flac"]
-)
+audio_file = st.file_uploader("Upload Cough Audio (wav/mp3/ogg/m4a)", type=["wav","mp3","ogg","m4a"])
 xray_file = st.file_uploader("Upload Chest X-ray Image (.png, .jpg, .jpeg)", type=["png", "jpg", "jpeg"])
 
 if st.button("Predict"):
