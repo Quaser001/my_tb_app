@@ -91,7 +91,7 @@ def predict_xray(img_file):
     return probs
 
 # ==============================
-# Streamlit UI - Beautiful
+# Streamlit UI - Aesthetic & Modern
 # ==============================
 st.set_page_config(
     page_title="Tuberculosis Detection App 🩺",
@@ -100,15 +100,71 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-st.markdown("<h1 style='text-align: center; color: #2E3B55;'>Tuberculosis Detection App 🩺</h1>", unsafe_allow_html=True)
-st.markdown("<p style='text-align: center; color: #4F5D75;'>Upload <b>Cough Audio</b> or <b>X-ray</b> or both. The model predicts TB probability.</p>", unsafe_allow_html=True)
+# -------------------------------
+# Custom CSS for background & cards
+# -------------------------------
+st.markdown(
+    """
+    <style>
+    /* Gradient Background */
+    .stApp {
+        background: linear-gradient(135deg, #FFDEE9 0%, #B5FFFC 100%);
+        background-attachment: fixed;
+    }
+    
+    /* Card container */
+    .card {
+        background: rgba(255, 255, 255, 0.85);
+        border-radius: 15px;
+        padding: 20px;
+        margin-bottom: 15px;
+        box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+    }
+
+    /* Header */
+    h1 {
+        font-family: 'Segoe UI', sans-serif;
+        color: #1E3A8A;
+        text-align: center;
+    }
+
+    /* Prediction texts */
+    .normal {
+        color: #16a34a;
+        font-weight: bold;
+    }
+    .tb {
+        color: #dc2626;
+        font-weight: bold;
+    }
+
+    /* Progress bar customization */
+    .stProgress > div > div > div > div {
+        background: linear-gradient(90deg, #fcd34d, #3b82f6);
+        border-radius: 8px;
+    }
+    </style>
+    """, unsafe_allow_html=True
+)
+
+# -------------------------------
+# App Header
+# -------------------------------
+st.markdown("<h1>🩺 Tuberculosis Detection App</h1>", unsafe_allow_html=True)
+st.markdown("<p style='text-align:center;color:#334155;'>Upload Cough Audio or X-ray or both. Get TB prediction instantly.</p>", unsafe_allow_html=True)
 st.write("---")
 
-audio_file = st.file_uploader("Upload Cough Audio (.wav, .mp3, .flac, .ogg)", 
+# -------------------------------
+# File Uploaders
+# -------------------------------
+audio_file = st.file_uploader("🎤 Upload Cough Audio (.wav, .mp3, .flac, .ogg)", 
                               type=["wav", "mp3", "flac", "ogg"])
-xray_file = st.file_uploader("Upload Chest X-ray Image (.png, .jpg, .jpeg)", 
+xray_file = st.file_uploader("🩻 Upload Chest X-ray Image (.png, .jpg, .jpeg)", 
                              type=["png", "jpg", "jpeg"])
 
+# -------------------------------
+# Predict Button
+# -------------------------------
 if st.button("Predict"):
     if not audio_file and not xray_file:
         st.warning("Please upload at least one file!")
@@ -121,15 +177,18 @@ if st.button("Predict"):
         if audio_file:
             st.info("Processing Audio Model...")
             audio_bytes = io.BytesIO(audio_file.read())
+            progress_bar = st.progress(0)
             with st.spinner("Running Audio Model..."):
                 for i in range(100):
                     time.sleep(0.01)
-                    st.progress(i + 1)
+                    progress_bar.progress(i + 1)
                 audio_probs = predict_audio(audio_bytes)
             with st.container():
+                st.markdown('<div class="card">', unsafe_allow_html=True)
                 st.markdown("### 🎤 Audio Model Results")
-                st.success(f"Normal: {audio_probs[0]*100:.2f}%")
-                st.error(f"TB: {audio_probs[1]*100:.2f}%")
+                st.markdown(f"<p class='normal'>Normal: {audio_probs[0]*100:.2f}%</p>", unsafe_allow_html=True)
+                st.markdown(f"<p class='tb'>TB: {audio_probs[1]*100:.2f}%</p>", unsafe_allow_html=True)
+                st.markdown("</div>", unsafe_allow_html=True)
             combined_probs.append(audio_probs)
 
         # -----------------------------
@@ -137,15 +196,18 @@ if st.button("Predict"):
         # -----------------------------
         if xray_file:
             st.info("Processing X-ray Model...")
+            progress_bar = st.progress(0)
             with st.spinner("Running X-ray Model..."):
                 for i in range(100):
                     time.sleep(0.01)
-                    st.progress(i + 1)
+                    progress_bar.progress(i + 1)
                 xray_probs = predict_xray(xray_file)
             with st.container():
+                st.markdown('<div class="card">', unsafe_allow_html=True)
                 st.markdown("### 🩻 X-ray Model Results")
-                st.success(f"Normal: {xray_probs[0]*100:.2f}%")
-                st.error(f"TB: {xray_probs[1]*100:.2f}%")
+                st.markdown(f"<p class='normal'>Normal: {xray_probs[0]*100:.2f}%</p>", unsafe_allow_html=True)
+                st.markdown(f"<p class='tb'>TB: {xray_probs[1]*100:.2f}%</p>", unsafe_allow_html=True)
+                st.markdown("</div>", unsafe_allow_html=True)
             combined_probs.append(xray_probs)
 
         # -----------------------------
@@ -153,10 +215,14 @@ if st.button("Predict"):
         # -----------------------------
         if len(combined_probs) == 2:
             avg_probs = np.mean(combined_probs, axis=0)
+            st.markdown('<div class="card">', unsafe_allow_html=True)
             st.markdown("### 📊 Combined Prediction")
-            st.success(f"Normal: {avg_probs[0]*100:.2f}%")
-            st.error(f"TB: {avg_probs[1]*100:.2f}%")
+            st.markdown(f"<p class='normal'>Normal: {avg_probs[0]*100:.2f}%</p>", unsafe_allow_html=True)
+            st.markdown(f"<p class='tb'>TB: {avg_probs[1]*100:.2f}%</p>", unsafe_allow_html=True)
+            st.markdown("</div>", unsafe_allow_html=True)
         elif len(combined_probs) == 1:
+            st.markdown('<div class="card">', unsafe_allow_html=True)
             st.markdown("### 📊 Prediction")
-            st.success(f"Normal: {combined_probs[0][0]*100:.2f}%")
-            st.error(f"TB: {combined_probs[0][1]*100:.2f}%")
+            st.markdown(f"<p class='normal'>Normal: {combined_probs[0][0]*100:.2f}%</p>", unsafe_allow_html=True)
+            st.markdown(f"<p class='tb'>TB: {combined_probs[0][1]*100:.2f}%</p>", unsafe_allow_html=True)
+            st.markdown("</div>", unsafe_allow_html=True)
