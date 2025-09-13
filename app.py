@@ -172,16 +172,16 @@ button:hover {
 # -------------------------------
 # Header & Subtext
 # -------------------------------
-st.markdown("<h1>🩺 TB Detection Magic</h1>", unsafe_allow_html=True)
-st.markdown("<p class='info-text' style='text-align:center;'>Upload your cough audio or chest X-ray 🩻. The model will do its magic! ✨</p>", unsafe_allow_html=True)
+st.markdown("<h1>🩺 MEDI FUSION</h1>", unsafe_allow_html=True)
+st.markdown("<p class='info-text' style='text-align:center;'>Upload your cough audio or chest X-ray for a quick diagnosis! ✨</p>", unsafe_allow_html=True)
 st.write("---")
 
 # ==============================
 # Streamlit File Uploaders
 # ==============================
-audio_file = st.file_uploader("Upload Cough Audio (.wav, .mp3, .flac, .ogg)", 
+audio_file = st.file_uploader("Upload Cough Audio", 
                               type=["wav", "mp3", "flac", "ogg"])
-xray_file = st.file_uploader("Upload Chest X-ray Image (.png, .jpg, .jpeg)", 
+xray_file = st.file_uploader("Upload Chest X-ray Image", 
                              type=["png", "jpg", "jpeg"])
 
 # ==============================
