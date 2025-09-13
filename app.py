@@ -91,69 +91,68 @@ def predict_xray(img_file):
     return probs
 
 # ==============================
-# UI Enhancements - Dark Cozy Professional
+# UI Enhancements - Dark Cozy Professional Theme
 # ==============================
 st.markdown("""
 <style>
 /* -------------------------- Background -------------------------- */
 .stApp {
-    background-color: #1A1A2E;
-    color: #E0E0E0;
+    background-color: #1E1E2F;
     font-family: 'Quicksand', sans-serif;
+    color: #E0E0E0;
 }
 
-/* -------------------------- Cards (glassmorphism effect) -------------------------- */
+/* -------------------------- Cards -------------------------- */
 .card {
-    background: rgba(30, 30, 60, 0.85);
-    backdrop-filter: blur(8px);
+    background: rgba(40, 42, 55, 0.85);
     border-radius: 20px;
     padding: 25px;
     margin-bottom: 20px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+    box-shadow: 0 12px 30px rgba(0,0,0,0.4);
     transition: all 0.3s ease-in-out;
 }
 .card:hover {
     transform: translateY(-5px);
-    box-shadow: 0 15px 40px rgba(0,0,0,0.7);
+    box-shadow: 0 20px 50px rgba(0,0,0,0.6);
 }
 
 /* -------------------------- Headers -------------------------- */
 h1 {
     font-family: 'Poppins', sans-serif;
-    color: #FFD369; 
+    color: #FF6F61; 
     text-align: center;
     font-weight: 700;
     letter-spacing: 1px;
 }
 h2, h3 {
     font-family: 'Quicksand', sans-serif;
-    color: #FF7E5F;
+    color: #82AAFF;
 }
 
 /* -------------------------- Prediction Text -------------------------- */
-.normal { color: #38BDF8; font-weight: 700; font-size: 18px; }
-.tb { color: #FF6B6B; font-weight: 700; font-size: 18px; }
-.info-text { color: #FFD369; font-size:16px; font-weight:500; }
+.normal { color: #82FFAA; font-weight: 700; font-size: 18px; }
+.tb { color: #FF6F61; font-weight: 700; font-size: 18px; }
+.info-text { color: #FFD97D; font-size:16px; font-weight:500; }
 
 /* -------------------------- Buttons -------------------------- */
 button {
-    background: linear-gradient(135deg, #FF7E5F, #FFD369);
-    color: #1A1A2E;
+    background: #5C7AEA;
+    color: #fff;
     font-weight: bold;
-    border-radius: 15px;
+    border-radius: 12px;
     padding: 10px 30px;
     transition: 0.3s ease;
 }
 button:hover {
-    background: linear-gradient(135deg, #FFD369, #FF7E5F);
+    background: #82AAFF;
     transform: scale(1.05);
 }
 
 /* -------------------------- Progress Bar -------------------------- */
 .stProgress > div > div > div > div {
-    background: linear-gradient(270deg, #38BDF8, #FF7E5F, #FFD369);
-    border-radius: 15px;
-    opacity: 0.9;
+    background: linear-gradient(270deg, #82FFAA, #FFD97D, #FF6F61);
+    border-radius: 12px;
+    opacity: 0.95;
     transition: width 0.6s ease-in-out;
 }
 
@@ -161,13 +160,11 @@ button:hover {
 .css-1aumxhk {
     font-size: 16px;
     font-weight: 500;
-    color: #E0E0E0;
 }
 .css-1y0tads {
-    border-radius: 15px;
-    background: rgba(40, 40, 70, 0.85);
+    border-radius: 12px;
+    background: rgba(50, 52, 70, 0.85);
     padding: 10px;
-    color: #E0E0E0;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -200,7 +197,7 @@ if st.button("Predict"):
         my_bar = st.progress(0, text=progress_text)
 
         for i in range(101):
-            time.sleep(0.01)
+            time.sleep(0.01)  # Smooth animated progress
             my_bar.progress(i, text=progress_text)
 
         # Audio Prediction
@@ -208,14 +205,14 @@ if st.button("Predict"):
             st.info("Running Audio Model...")
             audio_bytes = io.BytesIO(audio_file.read())
             audio_probs = predict_audio(audio_bytes)
-            st.markdown(f"<div class='card'><p class='normal'>Audio Model Probabilities: Normal: {audio_probs[0]*100:.2f}%, TB: {audio_probs[1]*100:.2f}%</p></div>", unsafe_allow_html=True)
+            st.markdown(f"<p class='normal'>Audio Model Probabilities: Normal: {audio_probs[0]*100:.2f}%, TB: {audio_probs[1]*100:.2f}%</p>", unsafe_allow_html=True)
             combined_probs.append(audio_probs)
 
         # X-ray Prediction
         if xray_file:
             st.info("Running X-ray Model...")
             xray_probs = predict_xray(xray_file)
-            st.markdown(f"<div class='card'><p class='tb'>X-ray Model Probabilities: Normal: {xray_probs[0]*100:.2f}%, TB: {xray_probs[1]*100:.2f}%</p></div>", unsafe_allow_html=True)
+            st.markdown(f"<p class='tb'>X-ray Model Probabilities: Normal: {xray_probs[0]*100:.2f}%, TB: {xray_probs[1]*100:.2f}%</p>", unsafe_allow_html=True)
             combined_probs.append(xray_probs)
 
         # Combined Prediction
