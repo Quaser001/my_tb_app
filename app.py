@@ -109,16 +109,18 @@ def preprocess_xray(img_file):
 # Audio Prediction
 # ==============================
 
-def predict_audio(wav_path):
-    spec = preprocess_audio(wav_path)  # [1, 1, freq, time]
-    spec = spec.to(DEVICE)
+def predict_audio(audio_file):
+    # Preprocess audio → returns tensor of shape [1, features]
+    spec = preprocess_audio(audio_file)
 
-    audio_model.eval()
+    # Run your trained audio model
+    model.eval()
     with torch.no_grad():
-        outputs = audio_model(spec)
-        probs = torch.nn.functional.softmax(outputs, dim=1)
+        logits = model(spec.to(DEVICE))  # shape [1, num_classes]
+        probs = torch.softmax(logits, dim=1).cpu().numpy().squeeze()  # shape [num_classes]
 
-    return probs.cpu().numpy()
+    return probs  # always a 1D NumPy array
+
 def predict_xray(img_file):
     img = preprocess_xray(img_file)
     with torch.no_grad():
@@ -142,9 +144,19 @@ if st.button("Predict"):
         combined_probs = []
         if audio_file:
             st.info("Running Audio Model...")
-            audio_probs = predict_audio(audio_file)
-            st.write(f"Audio Model Probabilities: Normal: {audio_probs[0]*100:.2f}%, TB: {audio_probs[1]*100:.2f}%")
-            combined_probs.append(audio_probs)
+    
+            audio_probs = predict_audio(audio_file)  # np.array of shape [2]
+
+            # Option 1: index + format nicely
+            normal_prob = float(audio_probs[0])
+            tb_prob = float(audio_probs[1])
+            st.write(f"Audio Model Probabilities → Normal: {normal_prob*100:.2f}%, TB: {tb_prob*100:.2f}%")
+
+        # Option 2: automatic for any number of classes
+            class_names = ["Normal", "TB"]
+            prob_dict = {name: f"{prob*100:.2f}%" for name, prob in zip(class_names, audio_probs)}
+            st.write("Audio Model Probabilities:", prob_dict)
+
         if xray_file:
             st.info("Running X-ray Model...")
             xray_probs = predict_xray(xray_file)
