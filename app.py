@@ -7,7 +7,6 @@ import torch.nn as nn
 import numpy as np
 from PIL import Image
 import io
-import time
 
 # ==============================
 # Device
@@ -43,6 +42,7 @@ xray_model.eval()
 # Audio Preprocessing (Multi-format)
 # ==============================
 def preprocess_audio_multi_format(file_like, sr=16000, n_mels=64, max_len=256):
+    # file_like is a BytesIO object from Streamlit uploader
     wav, original_sr = torchaudio.load(file_like)
     if original_sr != sr:
         wav = torchaudio.functional.resample(wav, original_sr, sr)
@@ -57,7 +57,7 @@ def preprocess_audio_multi_format(file_like, sr=16000, n_mels=64, max_len=256):
         spec = torch.nn.functional.pad(spec, (0, pad))
     else:
         spec = spec[:, :, :max_len]
-    spec = spec.unsqueeze(0).to(device)
+    spec = spec.unsqueeze(0).to(device)  # Add batch dimension
     return spec
 
 # ==============================
@@ -91,63 +91,15 @@ def predict_xray(img_file):
     return probs
 
 # ==============================
-# Streamlit UI Styling
-# ==============================
-st.set_page_config(
-    page_title="Tuberculosis Detection App 🩺",
-    page_icon="🩺",
-    layout="centered",
-    initial_sidebar_state="expanded"
-)
-
-# Custom CSS for aesthetics
-st.markdown("""
-    <style>
-    .stApp {
-        background: #f5f5f5;
-        color: #0a3d62;
-        font-family: 'Segoe UI', sans-serif;
-    }
-    .stButton>button {
-        background-color: #0a3d62;
-        color: white;
-        font-weight: bold;
-        height: 3em;
-        width: 12em;
-        border-radius: 10px;
-        border: none;
-    }
-    .stFileUploader>div>div>label {
-        font-weight: bold;
-        color: #0a3d62;
-    }
-    .stProgress>div>div {
-        background-color: #0a3d62;
-    }
-    h1 {
-        text-align: center;
-        color: #0a3d62;
-    }
-    </style>
-""", unsafe_allow_html=True)
-
-# ==============================
 # Streamlit UI
 # ==============================
-st.title("🩺 Tuberculosis Detection App")
-st.write("""
-Upload **Audio (Cough)** or **Chest X-ray Image** or both.
-The model predicts the probability of TB.
-""")
+st.title("Tuberculosis Detection App 🩺")
+st.write("Upload **Audio (Cough)** or **X-ray** or both. The model predicts TB probability.")
 
-audio_file = st.file_uploader(
-    "Upload Cough Audio (.wav, .mp3, .flac, .ogg)", 
-    type=["wav", "mp3", "flac", "ogg"]
-)
-xray_file = st.file_uploader(
-    "Upload Chest X-ray Image (.png, .jpg, .jpeg)", 
-    type=["png", "jpg", "jpeg"]
-)
+audio_file = st.file_uploader("Upload Cough Audio (.wav, .mp3, .flac, .ogg)", 
+                              type=["wav", "mp3", "flac", "ogg"])
+xray_file = st.file_uploader("Upload Chest X-ray Image (.png, .jpg, .jpeg)", 
+                             type=["png", "jpg", "jpeg"])
 
 if st.button("Predict"):
     if not audio_file and not xray_file:
@@ -155,30 +107,24 @@ if st.button("Predict"):
     else:
         combined_probs = []
 
-        # Audio Prediction with progress
+        # Audio Prediction
         if audio_file:
             st.info("Running Audio Model...")
             audio_bytes = io.BytesIO(audio_file.read())
-            with st.spinner("Processing audio..."):
-                for i in st.progress(range(100), text="Analyzing audio..."):
-                    time.sleep(0.01)  # Simulate progress
-                audio_probs = predict_audio(audio_bytes)
-            st.write(f"**Audio Model Probabilities:** Normal: {audio_probs[0]*100:.2f}%, TB: {audio_probs[1]*100:.2f}%")
+            audio_probs = predict_audio(audio_bytes)
+            st.write(f"Audio Model Probabilities: Normal: {audio_probs[0]*100:.2f}%, TB: {audio_probs[1]*100:.2f}%")
             combined_probs.append(audio_probs)
 
-        # X-ray Prediction with progress
+        # X-ray Prediction
         if xray_file:
             st.info("Running X-ray Model...")
-            with st.spinner("Processing X-ray image..."):
-                for i in st.progress(range(100), text="Analyzing X-ray..."):
-                    time.sleep(0.01)
-                xray_probs = predict_xray(xray_file)
-            st.write(f"**X-ray Model Probabilities:** Normal: {xray_probs[0]*100:.2f}%, TB: {xray_probs[1]*100:.2f}%")
+            xray_probs = predict_xray(xray_file)
+            st.write(f"X-ray Model Probabilities: Normal: {xray_probs[0]*100:.2f}%, TB: {xray_probs[1]*100:.2f}%")
             combined_probs.append(xray_probs)
 
         # Combined Prediction
         if len(combined_probs) == 2:
             avg_probs = np.mean(combined_probs, axis=0)
-            st.success(f"**Combined Prediction:** Normal: {avg_probs[0]*100:.2f}%, TB: {avg_probs[1]*100:.2f}%")
+            st.success(f"Combined Prediction: Normal: {avg_probs[0]*100:.2f}%, TB: {avg_probs[1]*100:.2f}%")
         elif len(combined_probs) == 1:
-            st.success(f"**Prediction:** Normal: {combined_probs[0][0]*100:.2f}%, TB: {combined_probs[0][1]*100:.2f}%")
+            st.success(f"Prediction: Normal: {combined_probs[0][0]*100:.2f}%, TB: {combined_probs[0][1]*100:.2f}%")
