@@ -1,11 +1,11 @@
-# requirements.txt  (for Python 3.10 / 3.11)
-streamlit==1.27.0
-numpy>=1.24,<1.26
+# requirements.txt  (for Python 3.13)
+streamlit>=1.40.0
+numpy>=2.1,<3
 torch==2.8.0
 torchvision==0.23.0
 torchaudio==2.8.0
 Pillow>=9.5,<10
-pandas>=1.3,<3
+pandas>=2.0,<3
 rich>=10.14.0,<14
 markdown-it-py==4.0.0
 mdurl==0.1.2
