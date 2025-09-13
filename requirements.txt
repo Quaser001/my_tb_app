@@ -1,7 +1,11 @@
-
-streamlit==1.27.0
-torch==2.1.0+cpu
-torchaudio==2.1.0+cpu
-torchvision==0.16.0+cpu
+streamlit
+torch
+torchaudio
+torchvision
+pandas
+scikit-learn
 numpy
-Pillow
+matplotlib
+seaborn
+
+
