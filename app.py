@@ -8,6 +8,15 @@ import torch.nn as nn
 import numpy as np
 from PIL import Image
 
+
+# Fix for Python 3.13 where audioop is missing
+import sys
+try:
+    import audioop  # noqa
+except ImportError:
+    sys.modules["audioop"] = None  # Prevent pydub import error
+
+
 # ==============================
 # Device
 # ==============================
