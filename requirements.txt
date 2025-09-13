@@ -1,5 +1,4 @@
 pydub
-pyaudioop
 soundfile
 streamlit>=1.40.0
 numpy>=1.26,<3
