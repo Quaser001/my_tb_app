@@ -7,6 +7,7 @@ import torch.nn as nn
 import numpy as np
 from PIL import Image
 import io
+import time
 
 # ==============================
 # Device
@@ -42,7 +43,6 @@ xray_model.eval()
 # Audio Preprocessing (Multi-format)
 # ==============================
 def preprocess_audio_multi_format(file_like, sr=16000, n_mels=64, max_len=256):
-    # file_like is a BytesIO object from Streamlit uploader
     wav, original_sr = torchaudio.load(file_like)
     if original_sr != sr:
         wav = torchaudio.functional.resample(wav, original_sr, sr)
@@ -57,7 +57,7 @@ def preprocess_audio_multi_format(file_like, sr=16000, n_mels=64, max_len=256):
         spec = torch.nn.functional.pad(spec, (0, pad))
     else:
         spec = spec[:, :, :max_len]
-    spec = spec.unsqueeze(0).to(device)  # Add batch dimension
+    spec = spec.unsqueeze(0).to(device)
     return spec
 
 # ==============================
@@ -91,10 +91,18 @@ def predict_xray(img_file):
     return probs
 
 # ==============================
-# Streamlit UI
+# Streamlit UI - Beautiful
 # ==============================
-st.title("Tuberculosis Detection App 🩺")
-st.write("Upload **Audio (Cough)** or **X-ray** or both. The model predicts TB probability.")
+st.set_page_config(
+    page_title="Tuberculosis Detection App 🩺",
+    page_icon="🩺",
+    layout="centered",
+    initial_sidebar_state="expanded",
+)
+
+st.markdown("<h1 style='text-align: center; color: #2E3B55;'>Tuberculosis Detection App 🩺</h1>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center; color: #4F5D75;'>Upload <b>Cough Audio</b> or <b>X-ray</b> or both. The model predicts TB probability.</p>", unsafe_allow_html=True)
+st.write("---")
 
 audio_file = st.file_uploader("Upload Cough Audio (.wav, .mp3, .flac, .ogg)", 
                               type=["wav", "mp3", "flac", "ogg"])
@@ -107,24 +115,48 @@ if st.button("Predict"):
     else:
         combined_probs = []
 
+        # -----------------------------
         # Audio Prediction
+        # -----------------------------
         if audio_file:
-            st.info("Running Audio Model...")
+            st.info("Processing Audio Model...")
             audio_bytes = io.BytesIO(audio_file.read())
-            audio_probs = predict_audio(audio_bytes)
-            st.write(f"Audio Model Probabilities: Normal: {audio_probs[0]*100:.2f}%, TB: {audio_probs[1]*100:.2f}%")
+            with st.spinner("Running Audio Model..."):
+                for i in range(100):
+                    time.sleep(0.01)
+                    st.progress(i + 1)
+                audio_probs = predict_audio(audio_bytes)
+            with st.container():
+                st.markdown("### 🎤 Audio Model Results")
+                st.success(f"Normal: {audio_probs[0]*100:.2f}%")
+                st.error(f"TB: {audio_probs[1]*100:.2f}%")
             combined_probs.append(audio_probs)
 
+        # -----------------------------
         # X-ray Prediction
+        # -----------------------------
         if xray_file:
-            st.info("Running X-ray Model...")
-            xray_probs = predict_xray(xray_file)
-            st.write(f"X-ray Model Probabilities: Normal: {xray_probs[0]*100:.2f}%, TB: {xray_probs[1]*100:.2f}%")
+            st.info("Processing X-ray Model...")
+            with st.spinner("Running X-ray Model..."):
+                for i in range(100):
+                    time.sleep(0.01)
+                    st.progress(i + 1)
+                xray_probs = predict_xray(xray_file)
+            with st.container():
+                st.markdown("### 🩻 X-ray Model Results")
+                st.success(f"Normal: {xray_probs[0]*100:.2f}%")
+                st.error(f"TB: {xray_probs[1]*100:.2f}%")
             combined_probs.append(xray_probs)
 
+        # -----------------------------
         # Combined Prediction
+        # -----------------------------
         if len(combined_probs) == 2:
             avg_probs = np.mean(combined_probs, axis=0)
-            st.success(f"Combined Prediction: Normal: {avg_probs[0]*100:.2f}%, TB: {avg_probs[1]*100:.2f}%")
+            st.markdown("### 📊 Combined Prediction")
+            st.success(f"Normal: {avg_probs[0]*100:.2f}%")
+            st.error(f"TB: {avg_probs[1]*100:.2f}%")
         elif len(combined_probs) == 1:
-            st.success(f"Prediction: Normal: {combined_probs[0][0]*100:.2f}%, TB: {combined_probs[0][1]*100:.2f}%")
+            st.markdown("### 📊 Prediction")
+            st.success(f"Normal: {combined_probs[0][0]*100:.2f}%")
+            st.error(f"TB: {combined_probs[0][1]*100:.2f}%")
