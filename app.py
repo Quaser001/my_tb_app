@@ -48,39 +48,44 @@ xray_model.load_state_dict(torch.load("xray_best.pt", map_location=device))
 xray_model.eval()
 
 # ==============================
-# Audio Preprocessing
+# Audio Preprocessing (torchaudio only)
 # ==============================
-import torchaudio
-from pydub import AudioSegment
-import numpy as np
-import torch
 
-# Try to set soundfile backend for torchaudio
-try:
-    torchaudio.set_audio_backend("soundfile")
-except Exception as e:
-    print("Warning: could not set torchaudio backend to soundfile:", e)
+import torchaudio
+import torch
+import numpy as np
+
 
 def preprocess_audio(wav_path, target_sr=16000):
     """
-    Load and preprocess audio.
-    Tries torchaudio first, falls back to pydub if torchaudio fails.
+    Load audio, resample if needed, and convert to MelSpectrogram.
+    Works for wav, mp3, flac, etc. torchaudio handles decoding.
     """
-    try:
-        # --- Try torchaudio ---
-        wav, sr = torchaudio.load(wav_path)
-        if sr != target_sr:
-            wav = torchaudio.functional.resample(wav, sr, target_sr)
-        return wav, target_sr
-    except Exception as e:
-        print("torchaudio.load failed, falling back to pydub. Error:", e)
+    # Load waveform
+    waveform, sr = torchaudio.load(wav_path)   # shape: [channels, samples]
 
-        # --- Fallback to pydub ---
-        audio = AudioSegment.from_file(wav_path)
-        audio = audio.set_channels(1).set_frame_rate(target_sr)
-        samples = np.array(audio.get_array_of_samples()).astype(np.float32) / 32768.0
-        wav = torch.tensor(samples).unsqueeze(0)  # shape (1, N)
-        return wav, target_sr
+    # If stereo, convert to mono
+    if waveform.shape[0] > 1:
+        waveform = torch.mean(waveform, dim=0, keepdim=True)
+
+    # Resample if needed
+    if sr != target_sr:
+        resampler = torchaudio.transforms.Resample(orig_freq=sr, new_freq=target_sr)
+        waveform = resampler(waveform)
+
+    # Create MelSpectrogram
+    mel_spec = torchaudio.transforms.MelSpectrogram(
+        sample_rate=target_sr,
+        n_fft=400,
+        hop_length=160,
+        n_mels=64
+    )(waveform)
+
+    # Normalize (optional but recommended)
+    mel_spec = (mel_spec - mel_spec.mean()) / (mel_spec.std() + 1e-6)
+
+    # Add batch dimension [1, 1, freq, time]
+    return mel_spec.unsqueeze(0)
 
 
 # ==============================
@@ -99,13 +104,20 @@ def preprocess_xray(img_file):
 # ==============================
 # Prediction Functions
 # ==============================
-def predict_audio(wav_path):
-    spec = preprocess_audio(wav_path)
-    with torch.no_grad():
-        out = audio_model(spec)
-        probs = torch.softmax(out, dim=1).cpu().numpy()[0]
-    return probs
+# ==============================
+# Audio Prediction
+# ==============================
 
+def predict_audio(wav_path):
+    spec = preprocess_audio(wav_path)  # [1, 1, freq, time]
+    spec = spec.to(DEVICE)
+
+    audio_model.eval()
+    with torch.no_grad():
+        outputs = audio_model(spec)
+        probs = torch.nn.functional.softmax(outputs, dim=1)
+
+    return probs.cpu().numpy()
 def predict_xray(img_file):
     img = preprocess_xray(img_file)
     with torch.no_grad():
