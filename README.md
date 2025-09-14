@@ -1,4 +1,4 @@
-# 🩺 AI-Powered Tuberculosis Detection App
+# 🩺MEDI-FUSION: Tuberculosis Detection App
 
 ## 📌 Overview
 Tuberculosis (TB) remains one of the leading infectious causes of death worldwide, with India carrying nearly **27% of the global TB burden**.  
